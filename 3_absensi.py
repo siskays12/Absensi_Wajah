@@ -1,5 +1,5 @@
 import cv2
-import pandas as pd
+import sqlite3
 from datetime import datetime
 import os
 
@@ -14,11 +14,9 @@ font = cv2.FONT_HERSHEY_SIMPLEX
 
 cam = cv2.VideoCapture(0)
 
-mahasiswa = {
-    1: "Andi",
-    2: "Budi",
-    3: "Siti"
-}
+# Connect ke database
+conn = sqlite3.connect("absensi.db")
+cursor = conn.cursor()
 
 while True:
 
@@ -50,41 +48,33 @@ while True:
             gray[y:y+h, x:x+w]
         )
 
+        # Jika confidence rendah (semakin rendah = semakin cocok)
         if confidence < 70:
+            
+            # Ambil data mahasiswa dari database berdasarkan id wajah
+            cursor.execute("SELECT nim, nama FROM mahasiswa WHERE id=?", (id,))
+            result = cursor.fetchone()
 
-            nama = mahasiswa.get(
-                id,
-                "Unknown"
-            )
+            if result:
+                nim = result[0]
+                nama = result[1]
+                
+                waktu = datetime.now()
+                tanggal_str = waktu.strftime("%d-%m-%Y")
+                jam_str = waktu.strftime("%H:%M:%S")
 
-            waktu = datetime.now()
+                # Cek apakah sudah absen hari ini supaya tidak tercatat ganda terus menerus
+                cursor.execute("SELECT * FROM absensi WHERE nama=? AND tanggal=?", (nama, tanggal_str))
+                is_absen = cursor.fetchone()
 
-            file = "absensi.csv"
+                if not is_absen:
+                    cursor.execute("INSERT INTO absensi (nim, nama, tanggal, jam) VALUES (?, ?, ?, ?)", (nim, nama, tanggal_str, jam_str))
+                    conn.commit()
+                    print(f"Berhasil menyimpan absen untuk {nama} pada {jam_str}!")
 
-            data = pd.DataFrame({
-                "Nama": [nama],
-                "Tanggal": [
-                    waktu.strftime("%d-%m-%Y")
-                ],
-                "Jam": [
-                    waktu.strftime("%H:%M:%S")
-                ]
-            })
-
-            if not os.path.exists(file):
-                data.to_csv(
-                    file,
-                    index=False
-                )
+                text = nama
             else:
-                data.to_csv(
-                    file,
-                    mode='a',
-                    header=False,
-                    index=False
-                )
-
-            text = nama
+                text = "Data tdk ada"
 
         else:
             text = "Unknown"
@@ -106,8 +96,10 @@ while True:
 
     k = cv2.waitKey(10) & 0xff
 
+    # Tekan 'Esc' untuk keluar
     if k == 27:
         break
 
 cam.release()
+conn.close()
 cv2.destroyAllWindows()
