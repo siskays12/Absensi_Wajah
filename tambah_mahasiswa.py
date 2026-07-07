@@ -11,7 +11,8 @@ cursor.execute("DELETE FROM mahasiswa")
 data_mahasiswa = [
     (1, '240658302003', 'Syifa Andini Aulia Putri'),
     (2, '240658302006', 'Meishella Indihafsari'),
-    (3, '240658302004', 'Siska Yama Sari')
+    (3, '240658302004', 'Siska Yama Sari'),
+    (4, '240658302005', 'Nando Juliansyah'),
 ]
 
 # Masukkan data ke dalam tabel
@@ -20,4 +21,4 @@ cursor.executemany("INSERT INTO mahasiswa (id, nim, nama) VALUES (?, ?, ?)", dat
 conn.commit()
 conn.close()
 
-print("Data 3 mahasiswa berhasil ditambahkan!")
+print("Data 4 mahasiswa berhasil ditambahkan!")
